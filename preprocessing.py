@@ -14,11 +14,13 @@ def correctSkew(image):
     if angle < -45:
         angle = -(90 + angle)
     else:
-        angle = -angle
+        angle = -angle 
     (h, w) = image.shape[:2]
     center = (w // 2, h // 2)
     M = cv2.getRotationMatrix2D(center, angle, 1.0)
     rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    rotated = cv2.threshold(rotated, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+    # print (rotated)
     return rotated
 
 def getLines(image):
@@ -94,8 +96,10 @@ if __name__ == "__main__":
     #     image = cv2.imread(f"images/{i}")
     #     preprocess(image)
 
-    image = cv2.imread("cjan1801.png")
-    linesOfWords = preprocess(image)
+    import sys
+    np.set_printoptions(threshold=sys.maxsize)
+    image = cv2.imread("Dataset/scanned/capr2.png")
+    linesOfWords, numWords, linesImages = preprocess(image)
     for j, line in enumerate(linesOfWords):
         for i, word in enumerate(line):
             # cv2.imshow("word", word)
