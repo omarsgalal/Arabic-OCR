@@ -3,6 +3,7 @@
 import numpy as np
 import cv2
 from scipy import stats
+from skeletone import zhangSuen
 
 class SeparationRegions:
     def __init__(self):
@@ -13,7 +14,7 @@ class SeparationRegions:
 def detectBaselineIndex(img):
     
     HP = np.sum(img, axis=1)
-    index = np.argmax(HP)
+    index = np.argmax(HP) - 1
     #print(HP[index])
     return index
     #start_point = (0, index)
@@ -41,7 +42,7 @@ def maxTransitionIndex(img, baselineIndex):
         if(currentTransition >= maxTrans):
             maxTrans = currentTransition
             maxTransIndex = i
-    if(baselineIndex - maxTransIndex == 1):
+    if(baselineIndex - maxTransIndex <= 2):
         maxTransIndex -= 1
     return maxTransIndex
 
@@ -179,13 +180,13 @@ def isStroke(MFV, segment, MTI, baselineIndex):
     HP = np.sum(segment, axis=1)
     mode = stats.mode(HP)[0][0]
 
-    baselineVP = np.sum(segment[baselineIndex-1:baselineIndex+2, :], axis=0)
+    baselineVP = np.sum(segment[baselineIndex-1:baselineIndex+3, :], axis=0)
     baseline = True
     if(0 in baselineVP):
         baseline = False
 
     #return (SHPA > SHPB) and (mode == MFV) and (not isSEGholed(segment, MTI))
-    returnValue = (SHPA > SHPB) and connectComp(255 - segment[:baselineIndex,:])[0] <= 2
+    returnValue = (SHPA > SHPB) and connectComp(255 - segment[baselineIndex - 15:baselineIndex,:])[0] <= 2
     Alef = True
     for i in range(MTI, 0, -1):
         alefRowIndex = np.where(segment[i,:] == 255)[0]
@@ -257,7 +258,7 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
     validSepRegion = []
     i = 0
     while i < len(sepRegionList):       
-        if(i == 1):
+        if(i == 2):
             x = 250
             y = 1
         SR = sepRegionList[i]
@@ -268,7 +269,7 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
         if(0 in baselineVP):
             baseline = False
         noBaseline = not baseline
-        _, comp = connectComp(word[:,SR.startIndex-1:SR.endIndex+2])
+        _, comp = connectComp(word[:,SR.startIndex-1:SR.endIndex+2*3])
         #7eta fadya
         if(countTransitions(word[:,SR.cutIndex], MTI) and np.sum(word[:MTI,:], axis=0)[SR.cutIndex] > 2*255):
             i += 1
@@ -277,7 +278,7 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
             i += 1
         #elif(connectComp(word[:,SR.startIndex:SR.endIndex]) != 1):
         #R
-        elif(VP[SR.cutIndex] != 0 and comp[MTI,1] != comp[MTI, -2]):
+        elif(VP[SR.cutIndex] != 0 and comp[BaselineIndex,1] != comp[BaselineIndex, -4]):
             up, down = countUpTransitions(word[:,SR.cutIndex], MTI)
             if up and not down and 2*255 < VP[SR.cutIndex] and VP[SR.cutIndex] < 6*3*255:
                 pass
@@ -442,9 +443,9 @@ cv2.imwrite("validCutPoints.png", wordColor)'''
 
 #cv2.destroyAllWindows()
 
-def validCutRegions(lineImage, wordImage):
+def validCutRegions(path, lineImage, wordImage):
 
-    im = lineImage
+    im = cv2.imread(path + lineImage)
 
     thresValue = 127
 
@@ -452,15 +453,25 @@ def validCutRegions(lineImage, wordImage):
     ret,thresh = cv2.threshold(imgray,thresValue,255,0)
     thresh = cv2.resize(thresh , (thresh.shape[1]*3 , thresh.shape[0]*3))
     ret,thresh = cv2.threshold(thresh,thresValue,255,0)
+    
+    #thresh[thresh == 255] = 1 
+    #thresh = zhangSuen(thresh)
+    #thresh[thresh == 1] = 255 
+    
 
 
-    wordOrg = wordImage
+    wordOrg = cv2.imread(path + wordImage)
     wordGray = cv2.cvtColor(wordOrg, cv2.COLOR_BGR2GRAY)
     ret, wordThresh = cv2.threshold(wordGray, thresValue,255,0)
     wordThresh = cv2.resize(wordThresh , (wordThresh.shape[1]*3 , wordThresh.shape[0]*3))
     ret, wordThresh = cv2.threshold(wordThresh, thresValue,255,0)
+
+    #wordThresh[wordThresh == 255] = 1 
+    #wordThresh = zhangSuen(wordThresh)
+    #wordThresh[wordThresh == 1] = 255 
+
     wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
-    baselineIndex = detectBaselineIndex(wordThresh)
+    baselineIndex = detectBaselineIndex(thresh)
     
     newWordCopy = wordThresh.copy()
     #for SR in range(0, wordThresh.shape[1]):
@@ -480,7 +491,7 @@ def validCutRegions(lineImage, wordImage):
         wordColor[maxTransIndex, sr.endIndex]   = np.array([0,0,255])
         wordColor[maxTransIndex, sr.cutIndex]   = np.array([0,255,0])
 
-    #cv2.imwrite(path + "wordImage\\" + wordImage + "cutPoints.png", wordColor)
+    cv2.imwrite(path + "wordImage\\" + wordImage + "cutPoints.png", wordColor)
 
     vsr = separationRegionFilter(thresh, newWordCopy, sepRegions, baselineIndex, maxTransIndex)
     wordColor = cv2.cvtColor(newWordCopy, cv2.COLOR_GRAY2BGR)
@@ -488,7 +499,7 @@ def validCutRegions(lineImage, wordImage):
         wordColor[maxTransIndex, sr.startIndex] = np.array([0,0,255])
         wordColor[maxTransIndex, sr.endIndex]   = np.array([0,0,255])
         wordColor[maxTransIndex, sr.cutIndex]   = np.array([0,255,0])
-    #cv2.imwrite(path + "wordImage\\" + wordImage + "validCutPoints.png", wordColor)
+    cv2.imwrite(path + "wordImage\\" + wordImage + "validCutPoints.png", wordColor)
 
     # start_point = (0, maxTransIndex)
     # end_point = (wordColor.shape[1], maxTransIndex)
@@ -501,4 +512,4 @@ def validCutRegions(lineImage, wordImage):
     return len(vsr)
 
 if __name__ == "__main__":
-    print(validCutRegions("", '0.png', '0_0.png'))
+    print(validCutRegions("", '0.png', '0_11.png'))

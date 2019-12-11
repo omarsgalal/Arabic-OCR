@@ -1,8 +1,6 @@
 import os
 import codecs
 from charSeg2 import validCutRegions 
-from preprocessing import preprocess
-import cv2
 
 def getText(fileName):
     f = codecs.open(fileName, encoding='utf-8')
@@ -45,60 +43,53 @@ def se7rText(textFileName):
 
 def se7rImage(textFileName):
     #textArr = se7rText(textFileName)
-    linesOfWords, numWords, linesImages = preprocess(image)
-    #errorsList = []
-    #allFiles = os.listdir(path="output\\")
+    textArr = getText("text\\" +textFileName + ".txt")
+    errorsList = []
+    allFiles = os.listdir(path="Arabic-OCR\\output\\")
     lineImage = ""
     errorSum = 0
     total = 0
     #i = 1
-    # cumSum = 0
-    # last = "0"
-    #maxAdded = 0
-    for line in linesOfWords:
-        i = 0
-        for f in line:
-            # if('.png' not in f):
-            #     continue
-            # if len(f) <= 5:
-            #     lineImage = f
-            #     if len(last) != 1:
-            #         added = int(last[2:3])
-            #         if len(last) > 7:
-            #             added = int(last[2:4])
-            #         cumSum += maxAdded + 1
-            #         maxAdded = 0
-            #     last = f
-            #     continue
-            # last = f
-            # if('8_' in f):
-            #     x = 10
-            nVR = validCutRegions(lineImage, f)
-            # added = int(last[2:3])
-            # if len(last) > 7:
-            #     added = int(last[2:4])
-            # maxAdded = max(maxAdded, added)
-            # index = cumSum + added
-            lenCompared = len(textArr[index])
-            if('لا' in textArr[index]):
-                lenCompared -= 1
-            if nVR + 1 != lenCompared:
-                print(f)
-                errorsList.append(abs(nVR + 1 - lenCompared))
-                errorSum += abs(nVR + 1 - lenCompared)
-                total += lenCompared
+    cumSum = 0
+    last = "0"
+    maxAdded = 0
+    for f in allFiles:
+        if('.png' not in f):
+            continue
+        if len(f) <= 5:
+            lineImage = f
+            if len(last) != 1:
+                added = int(last[2:3])
+                if len(last) > 7:
+                    added = int(last[2:4])
+                cumSum += maxAdded + 1
+                maxAdded = 0
+            last = f
+            continue
+        last = f
+        if('8_' in f):
+            x = 10
+        nVR = validCutRegions("Arabic-OCR\\output\\", lineImage, f)
+        added = int(last[2:3])
+        if len(last) > 7:
+            added = int(last[2:4])
+        maxAdded = max(maxAdded, added)
+        index = cumSum + added
+        lenCompared = len(textArr[index])
+        if('لا' in textArr[index]):
+            lenCompared -= 1
+        if nVR + 1 != lenCompared:
+            print(f)
+            errorsList.append(abs(nVR + 1 - lenCompared))
+            errorSum += abs(nVR + 1 - lenCompared)
+        total += lenCompared
 
     return errorSum, total
 
-# errorSum = 0
-# totalSum = 0
-# allFiles = os.listdir(path="../text/")
-# for f in allFiles:
-#     f = f[:-4]
-#     error, total = se7rImage(f)
-#     print(error, total)
-#     errorSum += error
-#     totalSum += total 
+# allFiles = os.listdir(path="Arabic-OCR\\output\\")
+errorSum, total = se7rImage('capr78')
+print("erroredChars", errorSum, "totalNoOfChars", total)
+print("accuracy", (total-errorSum)/total * 100)
 #-4
 
 #f_output = open('output.txt', 'w')
