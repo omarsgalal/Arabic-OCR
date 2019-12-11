@@ -3,10 +3,21 @@ import codecs
 import cv2
 import os
 import progressbar
+'''
+dataset/text/cmar1437.txt
+dataset/text/cmar1340.txt
+dataset/text/cdec546.txt
+dataset/text/cmar1339.txt
+dataset/text/cfeb370.txt
+dataset/text/cnov723.txt
+dataset/text/capr1336.txt
+dataset/text/capr114.txt
+dataset/text/cjun185.txt
+'''
 
 pathText = "Dataset/text/"
 pathImg = "Dataset/scanned/"
-fileName = "capr114.png"
+fileName = "cdec546.png"
 
 def getText(fileName):
     f = codecs.open(fileName, encoding='utf-8')
@@ -19,22 +30,22 @@ def getText(fileName):
             words = words[:-1]
         i += 1
     assert i == 1
-    newWords = []
-    i = 0
-    while i < len(words):
-        if len(words[i]) > 1:
-            newWords.append(words[i])
-            i += 1
-        else:
-            subword = ""
-            while i < len(words) - 1 and len(words[i]) <= 1:
-                subword += words[i]
-                i += 1
-            subword += words[i]
-            newWords.append(subword)
-            i += 1
+    # newWords = []
+    # i = 0
+    # while i < len(words):
+    #     if len(words[i]) > 1:
+    #         newWords.append(words[i])
+    #         i += 1
+    #     else:
+    #         subword = ""
+    #         while i < len(words) - 1 and len(words[i]) <= 1:
+    #             subword += words[i]
+    #             i += 1
+    #         subword += words[i]
+    #         newWords.append(subword)
+    #         i += 1
             
-    return newWords
+    return words
 
 def checkImgwithText(fileName, pathText, pathImg):
     image = cv2.imread(pathImg + fileName)

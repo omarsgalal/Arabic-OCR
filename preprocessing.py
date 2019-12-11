@@ -2,6 +2,9 @@ import numpy as np
 import cv2
 from scipy.ndimage import interpolation as inter
 import progressbar
+import sys
+import matplotlib.pyplot as plt
+np.set_printoptions(threshold=sys.maxsize)
 
 def binarizeImage(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -70,15 +73,18 @@ def getLines(image):
 
     if len(uppers) == len(lowers):
         for i in range(len(uppers)):
+            # lineImageI = image[uppers[i]:lowers[i], :]
+            # baseline = getBaseline(lineImageI)
+            # lineImageI = lineImageI[max(baseline - 16, 0): min(baseline + 15, lineImageI.shape[0] + 1), :]
+            # if lineImageI.shape[0] < 14 + 16 + 1: 
+            #     newLine = np.zeros(( 14 + 16 + 1, lineImageI.shape[1]))
+            #     #to be modified
+            #     newLine[1:lineImageI.shape[0] + 1, :] = lineImageI
+            #     lineImageI = newLine
+            # assert lineImageI.shape[0] == 14 + 16 + 1
+            # linesImages.append(lineImageI)
+
             lineImageI = image[uppers[i]:lowers[i], :]
-            baseline = getBaseline(lineImageI)
-            lineImageI = lineImageI[max(baseline - 13, 0): min(baseline + 9, lineImageI.shape[0] + 1), :]
-            if lineImageI.shape[0] < 8 + 13 + 1: 
-                newLine = np.zeros(( 8 + 13 + 1, lineImageI.shape[1]))
-                #to be modified
-                newLine[1:lineImageI.shape[0] + 1, :] = lineImageI
-                lineImageI = newLine
-            assert lineImageI.shape[0] == 8 + 13 + 1
             linesImages.append(lineImageI)
             
             # baseline += uppers[i]
@@ -116,6 +122,11 @@ def getWords(lineImage):
     # colored = cv2.cvtColor(lineImage, cv2.COLOR_GRAY2BGR)
 
     if len(uppers) == len(lowers):
+        
+        # for i in range(len(uppers)):
+        #     smallWord = lineImage[:, uppers[i]:lowers[i]]
+        #     wordImages.append(smallWord)
+
         i = len(uppers) - 1
         j = len(lowers) - 1
         while i >= 0:
@@ -129,6 +140,45 @@ def getWords(lineImage):
                 j = i
             else:
                 i -= 1
+            # cv2.line(colored, (uppers[i], 0), (uppers[i], H), (255,0,0), 1)
+            # cv2.line(colored, (lowers[i], 0), (lowers[i], H), (0,255,0), 1)
+    else:
+        raise Exception("Uppers not equal Lowers in words")
+        
+    return uppers, lowers, wordImages
+
+
+def getWords2(lineImage):
+    hist = cv2.reduce(lineImage, 0, cv2.REDUCE_AVG).reshape(-1)
+    print(hist)
+    raise Exception
+    avgFilter = np.array([1/3, 1/3, 1/3])
+    hist = np.convolve(hist, avgFilter, 'same')
+    th = 1
+    H,W = lineImage.shape[:2]
+    uppers = [y for y in range(W-1) if hist[y]<=th and hist[y+1]>th]
+    lowers = [y for y in range(W-1) if hist[y]>th and hist[y+1]<=th]
+    wordImages = []
+    # colored = cv2.cvtColor(lineImage, cv2.COLOR_GRAY2BGR)
+
+    if len(uppers) == len(lowers):
+        
+        for i in range(len(uppers)):
+            smallWord = lineImage[:, uppers[i]:lowers[i]]
+            wordImages.append(smallWord)
+        # i = len(uppers) - 1
+        # j = len(lowers) - 1
+        # while i >= 0:
+        #     smallWord = lineImage[:, uppers[i]:lowers[i]]
+        #     if smallWord.shape[1] > 8 or i == 0:
+        #         # if i == 0 and i == j and len(wordImages) > 0:
+        #         #     wordImages[-1] = lineImage[:, uppers[i]:lowers[j + 1]]
+        #         # else:
+        #         wordImages.append(lineImage[:, uppers[i]:lowers[j]])
+        #         i -= 1
+        #         j = i
+        #     else:
+        #         i -= 1
             # cv2.line(colored, (uppers[i], 0), (uppers[i], H), (255,0,0), 1)
             # cv2.line(colored, (lowers[i], 0), (lowers[i], H), (0,255,0), 1)
     else:
@@ -188,4 +238,7 @@ if __name__ == "__main__":
     #         # cv2.waitKey(0)
     #         cv2.imwrite(f"output/{j}_{i}.png", word)
 
-    getAvgMaxMinBaseline()
+    # getAvgMaxMinBaseline()
+
+    image = cv2.imread("Dataset/scanned/capr14.png")
+    linesOfWords, numWords, linesImages = preprocess(image)
