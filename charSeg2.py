@@ -3,7 +3,7 @@
 import numpy as np
 import cv2
 from scipy import stats
-from skeletone import zhangSuen
+# from skeletone import zhangSuen
 
 class SeparationRegions:
     def __init__(self):
@@ -511,5 +511,73 @@ def validCutRegions(path, lineImage, wordImage):
 
     return len(vsr)
 
+def validCutRegionsFinal(lineImage, wordImage):
+
+    im = lineImage
+
+    thresValue = 127
+
+    # imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+    # ret,thresh = cv2.threshold(imgray,thresValue,255,0)
+    thresh = cv2.resize(im , (im.shape[1]*3 , im.shape[0]*3))
+    ret,thresh = cv2.threshold(thresh,thresValue,255,0)
+    
+    #thresh[thresh == 255] = 1 
+    #thresh = zhangSuen(thresh)
+    #thresh[thresh == 1] = 255 
+    
+
+
+    wordOrg = wordImage
+    # wordGray = cv2.cvtColor(wordOrg, cv2.COLOR_BGR2GRAY)
+    # ret, wordThresh = cv2.threshold(wordGray, thresValue,255,0)
+    wordThresh = cv2.resize(wordOrg , (wordOrg.shape[1]*3 , wordOrg.shape[0]*3))
+    ret, wordThresh = cv2.threshold(wordThresh, thresValue,255,0)
+
+    #wordThresh[wordThresh == 255] = 1 
+    #wordThresh = zhangSuen(wordThresh)
+    #wordThresh[wordThresh == 1] = 255 
+
+    wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
+    baselineIndex = detectBaselineIndex(thresh)
+    
+    newWordCopy = wordThresh.copy()
+    #for SR in range(0, wordThresh.shape[1]):
+        
+
+    #print("here")
+    #cv2.imwrite("5555555.png", newWordCopy)
+    
+
+    maxTransIndex = maxTransitionIndex(newWordCopy, baselineIndex)
+    #print(baselineIndex, maxTransIndex)
+    img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+
+    sepRegions = cutPoints(thresh, newWordCopy, maxTransIndex)
+    for sr in sepRegions:
+        wordColor[maxTransIndex, sr.startIndex] = np.array([0,0,255])
+        wordColor[maxTransIndex, sr.endIndex]   = np.array([0,0,255])
+        wordColor[maxTransIndex, sr.cutIndex]   = np.array([0,255,0])
+    wordBeforeFilter = wordColor
+
+    vsr = separationRegionFilter(thresh, newWordCopy, sepRegions, baselineIndex, maxTransIndex)
+    wordColor = cv2.cvtColor(newWordCopy, cv2.COLOR_GRAY2BGR)
+    for sr in vsr:
+        wordColor[maxTransIndex, sr.startIndex] = np.array([0,0,255])
+        wordColor[maxTransIndex, sr.endIndex]   = np.array([0,0,255])
+        wordColor[maxTransIndex, sr.cutIndex]   = np.array([0,255,0])
+
+    # start_point = (0, maxTransIndex)
+    # end_point = (wordColor.shape[1], maxTransIndex)
+    # thickness = 1
+    # color = (0,0,255)
+    # wordColor = cv2.cvtColor(newWordCopy, cv2.COLOR_GRAY2BGR)
+    # output = cv2.line(wordColor, start_point, end_point, color, thickness)
+    # cv2.imwrite("wordImage\\" + "maxTransIndex.png", output)
+
+    return len(vsr), wordBeforeFilter, wordColor
+
+
 if __name__ == "__main__":
-    print(validCutRegions("", '0.png', '0_11.png'))
+    pass
+    # print(validCutRegions("", '0.png', '0_11.png'))
