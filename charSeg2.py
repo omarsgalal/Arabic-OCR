@@ -14,7 +14,7 @@ class SeparationRegions:
 def detectBaselineIndex(img):
     
     HP = np.sum(img, axis=1)
-    index = np.argmax(HP) - 1
+    index = np.argmax(HP)
     #print(HP[index])
     return index
     #start_point = (0, index)
@@ -37,13 +37,13 @@ def maxTransitionIndex(img, baselineIndex):
                 flag = 1
             elif(img[i,j] != 255 and flag == 1):
                 flag = 0
-        if(baselineIndex - i > 2*3):
-            break
         if(currentTransition >= maxTrans):
             maxTrans = currentTransition
             maxTransIndex = i
+        if(baselineIndex - i > 6):
+            break
     if(baselineIndex - maxTransIndex <= 2):
-        maxTransIndex -= 1
+        maxTransIndex = baselineIndex + 3
     return maxTransIndex
 
 #  -------------------->
@@ -252,13 +252,19 @@ def sumLeftVsRight(left, right):
         return True
     return False
 
+def specialGEEMcase(word, MTI, SR):
+    up    = (word[MTI-1, SR.cutIndex  ] == 255) or (word[MTI-2, SR.cutIndex  ] == 255)
+    left  = (word[MTI  , SR.cutIndex-1] == 255) or (word[MTI  , SR.cutIndex-2] == 255)
+    right = (word[MTI  , SR.cutIndex+1] == 255) or (word[MTI  , SR.cutIndex+2] == 255) 
+    return up and left and right
+
 def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
     VP = np.sum(word, axis=0)
     MFV = stats.mode(VP)[0][0]
     validSepRegion = []
     i = 0
     while i < len(sepRegionList):       
-        if(i == 2):
+        if(i == 6):
             x = 250
             y = 1
         SR = sepRegionList[i]
@@ -269,14 +275,27 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
         if(0 in baselineVP):
             baseline = False
         noBaseline = not baseline
-        _, comp = connectComp(word[:,SR.startIndex-1:SR.endIndex+2*3])
+        _, comp = connectComp(word[:,SR.startIndex-1:SR.endIndex+2*4])
         #7eta fadya
-        if(countTransitions(word[:,SR.cutIndex], MTI) and np.sum(word[:MTI,:], axis=0)[SR.cutIndex] > 2*255):
+        if(specialGEEMcase(word, MTI, SR)):
+            i += 1
+        elif(countTransitions(word[:,SR.cutIndex], MTI) and np.sum(word[:MTI,:], axis=0)[SR.cutIndex] > 2*255):
             i += 1
         elif(VP[SR.cutIndex] == 0):
             validSepRegion.append(SR)
             i += 1
         #elif(connectComp(word[:,SR.startIndex:SR.endIndex]) != 1):
+        # elif(i+1 == len(sepRegionList) and comp[MTI,1] == comp[MTI, -4]):
+        #     i += 1
+        # last letter
+        elif(i + 1 == len(sepRegionList) and baseline):# or sepRegionList[i+1].cutIndex == 0): and height(word[:,.cutIndex:SR.cutIndex], MTI) < 6):
+            # ة ر 
+            if (sumLeftVsRight(word[:,:SR.cutIndex], word[:,SR.cutIndex:SR.endIndex+1])):
+                validSepRegion.append(SR)
+                i += 1
+            # ف ق ت ب ث
+            else:
+                i += 1
         #R
         elif(VP[SR.cutIndex] != 0 and comp[BaselineIndex,1] != comp[BaselineIndex, -4]):
             up, down = countUpTransitions(word[:,SR.cutIndex], MTI)
@@ -284,11 +303,6 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                 pass
             else:
                 validSepRegion.append(SR)
-            i += 1
-        #elif(i-1 >= 0 and i+1 < len(sepRegionList) and isSEGholed(word[:,sepRegionList[i+1].cutIndex:sepRegionList[i-1].cutIndex], MTI)):
-        #hole
-        elif(connectComp(255 - word[:BaselineIndex,SR.startIndex:SR.endIndex+1])[0] >= 3 and countTransitions(word[:,SR.cutIndex], MTI)):
-            #connectComp(word[:baselineIndex,sepRegionList[i+1].cutIndex:sepRegionList[i-1].cutIndex])
             i += 1
         elif(noBaseline):
             SHPB = np.sum(np.sum(word[BaselineIndex:,SR.startIndex:SR.endIndex + 1], axis=1))
@@ -300,15 +314,13 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                 i += 1
             else:
                 i += 1
-        # last letter
-        elif(i + 1 == len(sepRegionList)):# or sepRegionList[i+1].cutIndex == 0): and height(word[:,.cutIndex:SR.cutIndex], MTI) < 6):
-            # ة ر 
-            if (sumLeftVsRight(word[:,:SR.cutIndex], word[:,SR.cutIndex:SR.endIndex+1])):
-                validSepRegion.append(SR)
-                i += 1
-            # ف ق ت ب ث
-            else:
-                i += 1
+        #elif(i-1 >= 0 and i+1 < len(sepRegionList) and isSEGholed(word[:,sepRegionList[i+1].cutIndex:sepRegionList[i-1].cutIndex], MTI)):
+        #hole
+        elif(connectComp(255 - word[:BaselineIndex,SR.startIndex:SR.endIndex+1])[0] >= 3 and countTransitions(word[:,SR.cutIndex], MTI)):
+            #connectComp(word[:baselineIndex,sepRegionList[i+1].cutIndex:sepRegionList[i-1].cutIndex])
+            i += 1
+        
+        
 
         
         elif(not isStroke(MFV, word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI, BaselineIndex)):
@@ -539,7 +551,7 @@ def validCutRegionsFinal(lineImage, wordImage):
     #wordThresh[wordThresh == 1] = 255 
 
     wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
-    baselineIndex = detectBaselineIndex(thresh)
+    baselineIndex = detectBaselineIndex(wordThresh)
     
     newWordCopy = wordThresh.copy()
     #for SR in range(0, wordThresh.shape[1]):
@@ -579,5 +591,4 @@ def validCutRegionsFinal(lineImage, wordImage):
 
 
 if __name__ == "__main__":
-    pass
-    # print(validCutRegions("", '0.png', '0_11.png'))
+    print(validCutRegions("", '0.png', '0_11.png'))
