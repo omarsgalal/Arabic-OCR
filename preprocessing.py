@@ -130,16 +130,23 @@ def getWords(lineImage):
         i = len(uppers) - 1
         j = len(lowers) - 1
         while i >= 0:
+            # smallWord = lineImage[:, uppers[i]:lowers[i]]
+            # if smallWord.shape[1] > 8 or i == 0:
+            #     # if i == 0 and i == j and len(wordImages) > 0:
+            #     #     wordImages[-1] = lineImage[:, uppers[i]:lowers[j + 1]]
+            #     # else:
+            #     wordImages.append(lineImage[:, uppers[i]:lowers[j]])
+            #     i -= 1
+            #     j = i
+            # else:
+            #     i -= 1
+
+
             smallWord = lineImage[:, uppers[i]:lowers[i]]
-            if smallWord.shape[1] > 8 or i == 0:
-                # if i == 0 and i == j and len(wordImages) > 0:
-                #     wordImages[-1] = lineImage[:, uppers[i]:lowers[j + 1]]
-                # else:
-                wordImages.append(lineImage[:, uppers[i]:lowers[j]])
-                i -= 1
-                j = i
-            else:
-                i -= 1
+            wordImages.append(smallWord)
+            i -= 1
+
+
             # cv2.line(colored, (uppers[i], 0), (uppers[i], H), (255,0,0), 1)
             # cv2.line(colored, (lowers[i], 0), (lowers[i], H), (0,255,0), 1)
     else:
@@ -150,8 +157,6 @@ def getWords(lineImage):
 
 def getWords2(lineImage):
     hist = cv2.reduce(lineImage, 0, cv2.REDUCE_AVG).reshape(-1)
-    print(hist)
-    raise Exception
     avgFilter = np.array([1/3, 1/3, 1/3])
     hist = np.convolve(hist, avgFilter, 'same')
     th = 1

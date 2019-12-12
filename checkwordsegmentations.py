@@ -15,9 +15,9 @@ dataset/text/capr114.txt
 dataset/text/cjun185.txt
 '''
 
-pathText = "Dataset/text/"
-pathImg = "Dataset/scanned/"
-fileName = "cdec546.png"
+pathText = "NewDataset/text/"
+pathImg = "NewDataset/scanned/"
+fileName = "capr1277.png"
 
 def getText(fileName):
     f = codecs.open(fileName, encoding='utf-8')
@@ -73,7 +73,6 @@ def checkImgwithText(fileName, pathText, pathImg):
                 file2.write(f"{i}\n")
         file.close()
         file2.close()
-    # return numWords == len(wordsText)
     return numWords, len(wordsText)
 
 print(checkImgwithText(fileName, pathText, pathImg))
@@ -87,13 +86,15 @@ print(checkImgwithText(fileName, pathText, pathImg))
 # with progressbar.ProgressBar(max_value=len(imagesNames)) as bar:
 #     for i, imgName in enumerate(imagesNames):
 #         wordsImg, wordsTxt = checkImgwithText(imgName, pathText, pathImg)
+#         if wordsImg != wordsTxt:
+#             print(imgName, "\t", wordsImg,"\t", wordsTxt)
 #         errorsDict[imgName] = wordsImg - wordsTxt
 #         numCorrect += int(errorsDict[imgName] == 0)
 #         maxError = max(maxError, errorsDict[imgName])
 #         minError = min(minError, errorsDict[imgName])
 #         bar.update(i)
 
-# f = open("errorsdict_all.txt", 'w')
+# f = open("errorsdict_all_newdataset.txt", 'w')
 # f.write(f"total correct: {numCorrect}\n")
 # f.write(f"max Error: {maxError}\n")
 # f.write(f"min Error: {minError}\n")
