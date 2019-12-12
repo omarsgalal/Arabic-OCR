@@ -22,7 +22,7 @@ def img2Chars(img):
     for i, line in enumerate(linesOfWords):
         for j, word in enumerate(line):
             numRegions, wordBeforeFilter, wordColor = validCutRegionsFinal(linesImages[i], word)
-            segmentedChars.append(wordColor)
+            segmentedChars.append([wordColor, numRegions+1])
 
     return segmentedChars
 
@@ -34,8 +34,15 @@ def printSegmentedWordChars(fileName, pathText, pathImg):
     # if numWords != len(wordsText):
     if not os.path.exists(fileName[:-4]):
         os.mkdir(fileName[:-4])
+    if not os.path.exists(fileName[:-4] + "/correct"):
+        os.mkdir(fileName[:-4] + "/correct")
+    if not os.path.exists(fileName[:-4] + "/false"):
+        os.mkdir(fileName[:-4] + "/false")
     for i, word in enumerate(segmentedChars):
-        cv2.imwrite(f"{fileName[:-4]}/{i}.png", word)
+        if word[1] == len(wordsText[i]):
+            cv2.imwrite(f"{fileName[:-4]}/correct/{i}.png", word[0])
+        else:
+            cv2.imwrite(f"{fileName[:-4]}/false/{i}.png", word[0])
     file = open(f"{fileName[:-4]}/words.txt", 'w')
     for i in wordsText:
         file.write(f"{i}\n")
@@ -43,8 +50,8 @@ def printSegmentedWordChars(fileName, pathText, pathImg):
 
 
 if __name__ == "__main__":
-    pathText = "Dataset/text/"
-    pathImg = "Dataset/scanned/"
-    fileName = "cmar1437.png"
+    pathText = "NewDataset/text/"
+    pathImg = "NewDataset/scanned/"
+    fileName = "capr1.png"
 
     printSegmentedWordChars(fileName, pathText, pathImg)
