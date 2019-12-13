@@ -573,6 +573,17 @@ def validCutRegionsFinal(lineImage, wordImage):
     wordBeforeFilter = wordColor
 
     vsr = separationRegionFilter(thresh, newWordCopy, sepRegions, baselineIndex, maxTransIndex)
+    segmentedChars = []
+    for index, sr in enumerate(vsr):
+        if index == 0:
+            segmentedChars.append(newWordCopy[:, sr.cutIndex:])
+            if index == len(vsr) - 1:
+                segmentedChars.append(newWordCopy[:, :sr.cutIndex])
+        elif index == len(vsr) - 1:
+            segmentedChars.append(newWordCopy[:, vsr[index].cutIndex: vsr[index-1].cutIndex])
+            segmentedChars.append(newWordCopy[:, :sr.cutIndex])
+        else:
+            segmentedChars.append(newWordCopy[:, vsr[index].cutIndex: vsr[index-1].cutIndex])
     wordColor = cv2.cvtColor(newWordCopy, cv2.COLOR_GRAY2BGR)
     for sr in vsr:
         wordColor[maxTransIndex, sr.startIndex] = np.array([0,0,255])
@@ -587,7 +598,7 @@ def validCutRegionsFinal(lineImage, wordImage):
     # output = cv2.line(wordColor, start_point, end_point, color, thickness)
     # cv2.imwrite("wordImage\\" + "maxTransIndex.png", output)
 
-    return len(vsr), wordBeforeFilter, wordColor
+    return len(vsr), wordBeforeFilter, wordColor, segmentedChars
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from charSeg2 import validCutRegionsFinal
 from checkwordsegmentations import getText
 import cv2
 import os
+from tqdm import tqdm
 
 '''
 dataset/text/cmar1437.txt
@@ -19,10 +20,11 @@ dataset/text/cjun185.txt
 def img2Chars(img):
     linesOfWords, numWords, linesImages = preprocess(img)
     segmentedChars = []
-    for i, line in enumerate(linesOfWords):
-        for j, word in enumerate(line):
-            numRegions, wordBeforeFilter, wordColor = validCutRegionsFinal(linesImages[i], word)
-            segmentedChars.append([wordColor, numRegions+1])
+    print("Segmenting image ...")
+    for i in tqdm(range(len(linesOfWords))):
+        for j, word in enumerate(linesOfWords[i]):
+            numRegions, wordBeforeFilter, wordColor, listOfseperateChars = validCutRegionsFinal(linesImages[i], word)
+            segmentedChars.append([wordColor, numRegions+1, listOfseperateChars])
 
     return segmentedChars
 
@@ -39,12 +41,15 @@ def printSegmentedWordChars(fileName, pathText, pathImg):
     if not os.path.exists(fileName[:-4] + "/false"):
         os.mkdir(fileName[:-4] + "/false")
     for i, word in enumerate(segmentedChars):
-        if word[1] == len(wordsText[i]):
+        wordLength = len(wordsText[i])
+        if "لا" in wordsText[i]:
+            wordLength -= 1
+        if word[1] == wordLength:
             cv2.imwrite(f"{fileName[:-4]}/correct/{i}.png", word[0])
         else:
             cv2.imwrite(f"{fileName[:-4]}/false/{i}.png", word[0])
     file = open(f"{fileName[:-4]}/words.txt", 'w')
-    for i in wordsText:
+    for j, i in enumerate(wordsText):
         file.write(f"{i}\n")
     file.close()
 

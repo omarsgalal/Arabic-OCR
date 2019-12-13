@@ -29,23 +29,20 @@ def getText(fileName):
         if words[-1] == "\r\n":
             words = words[:-1]
         i += 1
-    assert i == 1
-    # newWords = []
-    # i = 0
-    # while i < len(words):
-    #     if len(words[i]) > 1:
-    #         newWords.append(words[i])
-    #         i += 1
-    #     else:
-    #         subword = ""
-    #         while i < len(words) - 1 and len(words[i]) <= 1:
-    #             subword += words[i]
-    #             i += 1
-    #         subword += words[i]
-    #         newWords.append(subword)
-    #         i += 1
-            
+    assert i == 1         
     return words
+
+def word2Chars(word):
+    i = 0
+    chars = []
+    while i < len(word):
+        if word[i] == 'ل' and i < len(word) - 1 and word[i+1] == 'ا':
+            chars.append(word[i:i+2])
+            i += 2
+        else:
+            chars.append(word[i])
+            i += 1
+    return chars
 
 def checkImgwithText(fileName, pathText, pathImg):
     image = cv2.imread(pathImg + fileName)
