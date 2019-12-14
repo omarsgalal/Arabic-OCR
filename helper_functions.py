@@ -4,6 +4,8 @@ import random
 import shutil
 from tqdm import tqdm
 import cv2
+from checkwordsegmentations import getText
+import pickle as cPickle
 
 def officialCharsStats(datasetPath):
     folders = [int(i) for i in os.listdir(datasetPath)]
@@ -43,11 +45,33 @@ def deleteFilesWithThrGreater(path, thr):
             os.remove(path + f)
 
 
+def collectAllWords(path):
+    files = os.listdir(path)
+    wordSet = set()
+    for i in tqdm(range(len(files))):
+        words = getText(path + files[i])
+        for word in words:
+            wordSet.add(word)
+    wordSet = list(wordSet)
+    with open('all_words.pkl', 'wb') as fid:
+        cPickle.dump(wordSet, fid)
+
+def loadWordsList():
+    path = "all_words.pkl"
+    with open(path, 'rb') as fid:
+        wordsList = cPickle.load(fid)
+    return wordsList
+
 if __name__ == "__main__":
-    officialCharsStats("CleanedLettersDataset/")
+    # officialCharsStats("CleanedLettersDataset/")
 
     # copyLetters("OfficialLettersDataset/", "CleanedLettersDataset/")
 
     # deleteFilesWithThr("CleanedLettersDataset/28/", 18)
 
     # deleteFilesWithThrGreater("CleanedLettersDataset/26/", 35)
+
+    # collectAllWords("NewDataset/text/")
+
+    w = loadWordsList()
+    print(w[:30])
