@@ -6,7 +6,7 @@ from chars_frequencies import chars_decode
 import cv2
 from Levenshtein import distance as levenshtein_distance
 from helper_functions import loadWordsList
-from checkwordsegmentations import getText
+from checkwordsegmentations import getText, writeText
 
 MODEL_NAME = "Neural Net"
 
@@ -62,8 +62,9 @@ def img2txt(imgName, outfile):
     # text = ' '.join(text)
 
     # writing text
-    with open(outfile, 'w') as f:
-        f.write(finalText)
+    # with open(outfile, 'w') as f:
+    #     f.write(finalText)
+    writeText(outfile, finalText)
 
 
 def img2txt2(imgName, textFile, outfile):

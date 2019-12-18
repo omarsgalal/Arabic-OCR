@@ -32,6 +32,10 @@ def getText(fileName):
     assert i == 1         
     return words
 
+def writeText(fileName, text):
+    with codecs.open(fileName, "w", "utf-8") as temp:
+        temp.write(text)
+
 def word2Chars(word):
     i = 0
     chars = []
@@ -72,7 +76,7 @@ def checkImgwithText(fileName, pathText, pathImg):
         file2.close()
     return numWords, len(wordsText)
 
-print(checkImgwithText(fileName, pathText, pathImg))
+# print(checkImgwithText(fileName, pathText, pathImg))
 
 # import os
 # imagesNames = os.listdir(pathImg)[:]
