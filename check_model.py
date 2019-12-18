@@ -35,29 +35,28 @@ X_train, y_train = letters_images, letters
 X_test, y_test = letters_images[:len(letters_images_path)], letters[:len(letters_images_path)]
 
 
+def train_models(X_train, y_train, X_test, y_test):
+    names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", 
+            "Random Forest", "Neural Net", "Naive Bayes"]
 
-names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", 
-         "Random Forest", "Neural Net", "Naive Bayes"]
+    classifiers = [
+        KNeighborsClassifier(3),
+        SVC(kernel="linear", C=0.025, verbose=True),
+        SVC(gamma=2, C=1, verbose=True),
+        RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1, verbose=True),
+        MLPClassifier(alpha=1, max_iter=1000, verbose=True),
+        GaussianNB()]
 
-classifiers = [
-    KNeighborsClassifier(3),
-    SVC(kernel="linear", C=0.025),
-    SVC(gamma=2, C=1),
-    RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-    MLPClassifier(alpha=1, max_iter=1000),
-    GaussianNB()]
+    results = []
+    for name, clf in zip(names, classifiers):
+        tic = time()
+        clf.fit(X_train, y_train)
+        toc = time()
+        score = clf.score(X_test, y_test)
+        tooc = time()
+        score_train = clf.score(X_train, y_train)
+        print(name, 'test score', str(score)[:4], 'train score', str(score_train)[:4], 'train time: ', str(toc-tic)[:6], ' test time: ', str(tooc -toc)[:6])
 
-results = []
-for name, clf in zip(names, classifiers):
-    tic = time()
-    clf.fit(X_train, y_train)
-    toc = time()
-    score = clf.score(X_test, y_test)
-    tooc = time()
-    if hasattr(clf, "decision_function"):
-        Z = clf.decision_function(X_test)
-    else:
-        Z = clf.predict_proba(X_test)
-    results += [Z]
-    print(name, str(score)[:4], 'train time: ', str(toc-tic)[:6], ' test time: ', str(tooc -toc)[:6])
-
+if __name__ == "__main__":
+    
+    train_models(X_train, y_train, X_test, y_test)

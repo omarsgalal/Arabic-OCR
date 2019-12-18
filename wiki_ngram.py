@@ -79,11 +79,11 @@ with open('ngram_word.json', 'w') as fp:
 changedModels = charModels
 
 for m in changedModels:
-      if m == 0: continue
+  if m == 0: continue
   oldKeys = list(m.keys())
   for key in oldKeys:
-        if type(key) is not str:
-          try:
+    if type(key) is not str:
+      try:
         m[str(''.join(key))] = m[key]
       except:
         if key == None:
