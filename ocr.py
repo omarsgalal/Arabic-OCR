@@ -18,6 +18,7 @@ from glob import glob
 import os
 import random
 import sys
+from checkwordsegmentations import getText, writeText
 
 
 charaterModels = ''

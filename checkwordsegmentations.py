@@ -31,6 +31,10 @@ def getText(fileName):
     assert i == 1         
     return words
 
+def writeText(fileName, text):
+    with codecs.open(fileName, "w", "utf-8") as temp:
+        temp.write(text)
+
 def word2Chars(word):
     i = 0
     chars = []
