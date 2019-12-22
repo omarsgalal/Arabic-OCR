@@ -2,7 +2,6 @@ from preprocessing import preprocess
 import codecs
 import cv2
 import os
-import progressbar
 '''
 dataset/text/cmar1437.txt
 dataset/text/cmar1340.txt
@@ -72,7 +71,7 @@ def checkImgwithText(fileName, pathText, pathImg):
         file2.close()
     return numWords, len(wordsText)
 
-print(checkImgwithText(fileName, pathText, pathImg))
+# print(checkImgwithText(fileName, pathText, pathImg))
 
 # import os
 # imagesNames = os.listdir(pathImg)[:]

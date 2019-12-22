@@ -1,9 +1,8 @@
 import numpy as np
 import cv2
 from scipy.ndimage import interpolation as inter
-import progressbar
 import sys
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 np.set_printoptions(threshold=sys.maxsize)
 
 def binarizeImage(image):
@@ -209,18 +208,16 @@ def getAvgMaxMinBaseline():
     f = open("stats.txt", 'w')
     f.write("\t\t\tmaxAbove\tmaxBelow\tavgAbove\tavgBelow\n")
     allstats = [0, 0, 0, 0]
-    with progressbar.ProgressBar(max_value=len(x)) as bar:
-        for j, i in enumerate(x):
-            image = cv2.imread(f"Dataset/scanned/{i}")
-            binarizedImage = binarizeImage(image)
-            rotatedImage = correctSkew(binarizedImage)
-            _, _, _, stats = getLines(rotatedImage)
-            f.write(f"{i}\t{stats[0]}\t{stats[1]}\t{stats[2]}\t{stats[3]}\n")
-            allstats[0] = max(allstats[0], stats[0])
-            allstats[1] = max(allstats[1], stats[1])
-            allstats[2] += stats[2]
-            allstats[3] += stats[3]
-            bar.update(j)
+    for j, i in tqdm(enumerate(x)):
+        image = cv2.imread(f"Dataset/scanned/{i}")
+        binarizedImage = binarizeImage(image)
+        rotatedImage = correctSkew(binarizedImage)
+        _, _, _, stats = getLines(rotatedImage)
+        f.write(f"{i}\t{stats[0]}\t{stats[1]}\t{stats[2]}\t{stats[3]}\n")
+        allstats[0] = max(allstats[0], stats[0])
+        allstats[1] = max(allstats[1], stats[1])
+        allstats[2] += stats[2]
+        allstats[3] += stats[3]
     allstats[2] /= len(x)
     allstats[3] /= len(x)
     f.write(f"\t\t\t{allstats[0]}\t{allstats[1]}\t{allstats[2]}\t{allstats[3]}")
