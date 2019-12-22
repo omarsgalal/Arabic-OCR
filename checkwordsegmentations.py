@@ -2,7 +2,6 @@ from preprocessing import preprocess
 import codecs
 import cv2
 import os
-import progressbar
 '''
 dataset/text/cmar1437.txt
 dataset/text/cmar1340.txt

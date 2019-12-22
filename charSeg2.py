@@ -597,7 +597,7 @@ def validCutRegionsFinal(lineImage, wordImage):
     # wordColor = cv2.cvtColor(newWordCopy, cv2.COLOR_GRAY2BGR)
     # output = cv2.line(wordColor, start_point, end_point, color, thickness)
     # cv2.imwrite("wordImage\\" + "maxTransIndex.png", output)
-
+    if len(segmentedChars) == 0: segmentedChars = [newWordCopy]
     return len(vsr), wordBeforeFilter, wordColor, segmentedChars
 
 
