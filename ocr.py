@@ -24,7 +24,7 @@ from checkwordsegmentations import getText, writeText
 charaterModels = ''
 wordModels = ''
 
-MODEL_NAME = "SVMnew"
+MODEL_NAME = "Neural Net"
 # loading the model
 model = loadModel(MODEL_NAME)
 
@@ -302,7 +302,7 @@ def img2txt2(imgName, textFile, outfile):
 
 if __name__ == "__main__":
     # img2txt2("dataset/scanned/capr1.png","dataset/text/capr1.txt", "omar2.txt")
-    imagesLen = 1000
+    imagesLen = 2000
     # startInd = 1
     values = np.zeros((imagesLen,2))
     # with open('dataset/ngram_word2.json') as fin:
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     filesImages = filesImages[:imagesLen]
     timeFile = open('time.txt', 'w')
 
-    filesImages = [os.path.join('NewDataset', 'scanned', 'caug1141.png')]
+    # filesImages = [os.path.join('NewDataset', 'scanned', 'capr1.png')]
     for i, imgPath in tqdm(enumerate(filesImages)):
         imgName = os.path.split(imgPath)[-1]
         Name = ''.join(imgName.split('.')[:-1]) + '.txt'
