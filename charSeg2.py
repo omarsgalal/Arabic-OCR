@@ -610,12 +610,15 @@ def validCutRegionsFinal(lineImage, wordImage):
     wordThresh = cv2.resize(wordOrg , (wordOrg.shape[1]*3 , wordOrg.shape[0]*3))
     ret, wordThresh = cv2.threshold(wordThresh, thresValue,255,0)
 
+    # handle 4 vs 8 connectivity issues
+
+    
     #wordThresh[wordThresh == 255] = 1 
     #wordThresh = zhangSuen(wordThresh)
     #wordThresh[wordThresh == 1] = 255 
 
     wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
-    baselineIndex = detectBaselineIndex(wordThresh)
+    baselineIndex = detectBaselineIndex(thresh)
     
     newWordCopy = wordThresh.copy()
     #for SR in range(0, wordThresh.shape[1]):
