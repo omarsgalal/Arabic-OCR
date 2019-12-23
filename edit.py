@@ -10,7 +10,7 @@ if len(sys.argv) != 3:
 distances = []
 accuracies = []
 
-for file_name in os.listdir(sys.argv[2]):
+for file_name in os.listdir(sys.argv[1]):
     with open(os.path.join(sys.argv[1], file_name)) as f:
         predicted = ''.join(f.read().split())
     with open(os.path.join(sys.argv[2], file_name)) as f:
@@ -18,7 +18,7 @@ for file_name in os.listdir(sys.argv[2]):
     distance = editdistance.eval(predicted, truth)
     distances.append(distance)
     accuracies.append(max(0, 1 - distance / len(truth)))
-    print(f'{file_name}: {distance}')
+    print(f'{file_name}: {distance}\t\t{1 - distance / len(truth)}\t{len(truth)}')
 
 print(f'Total distance = {sum(distances)}')
 print('Average Accuracy = %.2f%%' % (sum(accuracies) / len(accuracies) * 100))

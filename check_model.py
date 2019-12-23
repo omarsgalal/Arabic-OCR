@@ -7,7 +7,7 @@ import cv2
 
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from prepare_data_to_classifier import getDataset
@@ -55,9 +55,13 @@ if __name__ == "__main__":
     # names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", 
     #         "Random Forest", "Neural Net", "Naive Bayes"]
 
-    names = ["Neural Net", "Naive Bayes"]
+    # names = ["Neural Net 30"]
+    # names = ["KNNsmall"]
+    names = ["SVMnew"]
 
-    classifiers = [MLPClassifier(alpha=1, max_iter=1000), GaussianNB()]
+    # classifiers = [MLPClassifier(alpha=1, max_iter=100, hidden_layer_sizes=(30,), random_state=7, verbose=True)]
+    # classifiers = [KNeighborsClassifier()]
+    classifiers = [LinearSVC(C=0.25)]
 
     results = []
     for name, clf in zip(names, classifiers):
@@ -73,4 +77,3 @@ if __name__ == "__main__":
             Z = clf.predict_proba(X_test)
         results += [Z]
         print(name, str(score)[:4], 'train time: ', str(toc-tic)[:6], ' test time: ', str(tooc -toc)[:6])
-

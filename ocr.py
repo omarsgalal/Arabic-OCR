@@ -24,7 +24,7 @@ from checkwordsegmentations import getText, writeText
 charaterModels = ''
 wordModels = ''
 
-MODEL_NAME = "Neural Net"
+MODEL_NAME = "SVMnew"
 # loading the model
 model = loadModel(MODEL_NAME)
 
@@ -88,17 +88,17 @@ def img2txt(imgName, txtPath , outfile):
 
     print("\npost processing ...")
     # withNGram = postProcessing(textList)
-    withNGram = postprocessing_v2(finalText)
-    # withNGram = finalText
+    # withNGram = postprocessing_v2(finalText)
+    withNGram = finalText
     # wordsList = loadWordsList()
     # text = [getNearestWord(text[i], wordsList) for i in tqdm(range(len(text)))]
     # text = ' '.join(text)
 
     # writing text
-    writeFile(outfile, finalText)
-    writeFile(outfile.split('.')[0] + '-Ngram.txt', withNGram)
+    writeText(outfile, finalText)
+    # writeText(outfile.split('.')[0] + '-Ngram.txt', withNGram)
 
-    originalTxt = load_txt(txtPath)
+    originalTxt = getText(txtPath)
     # finalText = originalTxt[:4] + finalText[4:]
     error = editdistance.eval(finalText, originalTxt) / len(originalTxt)
     errorNgram = editdistance.eval(withNGram, originalTxt) / len(originalTxt)
@@ -211,7 +211,7 @@ def postprocessing_v2(predected):
     global wordModels
     if wordModels == '':
         print('loading')
-        with open('dataset/ngram_word2.json') as fin:
+        with open('NewDataset/ngram_word2.json') as fin:
             wordModels = json.load(fin)
         print('loaded')
 
@@ -302,24 +302,24 @@ def img2txt2(imgName, textFile, outfile):
 
 if __name__ == "__main__":
     # img2txt2("dataset/scanned/capr1.png","dataset/text/capr1.txt", "omar2.txt")
-    imagesLen = 1
+    imagesLen = 1000
     # startInd = 1
     values = np.zeros((imagesLen,2))
     # with open('dataset/ngram_word2.json') as fin:
     #     wordModels = json.load(fin)
     # postprocessing_v2.p = multiprocessing.Pool(4)
     img2Chars.pool = multiprocessing.Pool(8)
-    filesImages = glob(os.path.join('dataset', 'scanned', '*.png'))
+    filesImages = glob(os.path.join('NewDataset', 'scanned', '*.png'))
     random.shuffle(filesImages)
     filesImages = filesImages[:imagesLen]
     timeFile = open('time.txt', 'w')
 
-    filesImages = [os.path.join('dataset', 'scanned', 'capr1111.png')]
+    filesImages = [os.path.join('NewDataset', 'scanned', 'caug1141.png')]
     for i, imgPath in tqdm(enumerate(filesImages)):
         imgName = os.path.split(imgPath)[-1]
         Name = ''.join(imgName.split('.')[:-1]) + '.txt'
-        txtPath = os.path.join("dataset", 'text' ,Name)
-        outPath = os.path.join("dataset", 'results' ,Name)
+        txtPath = os.path.join("NewDataset", 'text' ,Name)
+        outPath = os.path.join("NewDataset", 'results' ,Name)
 
         # sys.stdout = nullFile
         tic = time()
