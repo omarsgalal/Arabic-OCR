@@ -32,5 +32,5 @@ def calculateErrorRate(groundTruthPath="NewDataset/text/", predictedPath="Output
 
 
 if __name__ == "__main__":
-    # img2txtRandomFiles()
-    calculateErrorRate()
+    img2txtRandomFiles(500)
+    #calculateErrorRate()
