@@ -14,7 +14,9 @@ class SeparationRegions:
 def detectBaselineIndex(img):
     
     HP = np.sum(img, axis=1)
-    index = np.argmax(HP)
+    # index = np.argmax(HP)
+
+    index = int(HP.shape[0]*5/9) + np.argmax(HP[int(HP.shape[0] * 5 / 9): int(HP.shape[0] * 6 / 9) + 3])
     #print(HP[index])
     return index
     #start_point = (0, index)
@@ -27,7 +29,7 @@ def detectBaselineIndex(img):
 #m7tag yt3ad 3la el code 
 def maxTransitionIndex(img, baselineIndex):
     maxTrans = 0
-    maxTransIndex = baselineIndex
+    maxTransIndex = baselineIndex - 1
     for i in range(baselineIndex - 1, -1, -1):
         currentTransition = 0
         flag = 0
@@ -40,10 +42,10 @@ def maxTransitionIndex(img, baselineIndex):
         if(currentTransition >= maxTrans):
             maxTrans = currentTransition
             maxTransIndex = i
-        if(baselineIndex - i > 6):
+        if(baselineIndex - i > 5):
             break
     if(baselineIndex - maxTransIndex <= 2):
-        maxTransIndex = baselineIndex + 3
+        maxTransIndex = baselineIndex - 3
     return maxTransIndex
 
 #  -------------------->
@@ -128,7 +130,7 @@ def connectComp(a):
     b[b == 255] = 1 
     '''if(b.shape[0] > 16):
         b[16,0] = 1'''
-    n, comp = cv2.connectedComponents(b, connectivity=4)
+    n, comp = cv2.connectedComponents(b, connectivity=8)
     #print(comp)
     #print(n)
     return n, comp
@@ -175,8 +177,8 @@ def checkCircle(circle, i, j, pixelSet, direction):
     return False
 
 def isStroke(MFV, segment, MTI, baselineIndex):
-    SHPA = np.sum(np.sum(segment[:baselineIndex+1,:], axis=1))
-    SHPB = np.sum(np.sum(segment[baselineIndex+1:,:], axis=1))
+    SHPA = np.sum(np.sum(segment[:baselineIndex+3,:], axis=1))
+    SHPB = np.sum(np.sum(segment[baselineIndex+3:,:], axis=1))
     HP = np.sum(segment, axis=1)
     mode = stats.mode(HP)[0][0]
 
@@ -186,7 +188,7 @@ def isStroke(MFV, segment, MTI, baselineIndex):
         baseline = False
 
     #return (SHPA > SHPB) and (mode == MFV) and (not isSEGholed(segment, MTI))
-    returnValue = (SHPA > SHPB) and connectComp(255 - segment[baselineIndex - 15:baselineIndex,:])[0] <= 2
+    returnValue = (SHPA > SHPB) and connectComp(255 - segment[baselineIndex - 3*6:baselineIndex,:])[0] <= 2
     Alef = True
     for i in range(MTI, 0, -1):
         alefRowIndex = np.where(segment[i,:] == 255)[0]
@@ -252,11 +254,12 @@ def sumLeftVsRight(left, right):
         return True
     return False
 
-def specialGEEMcase(word, MTI, SR):
+def specialGEEMcase(word, MTI, SR, NSR, MFV, BaselineIndex):
     up    = (word[MTI-1, SR.cutIndex  ] == 255) or (word[MTI-2, SR.cutIndex  ] == 255)
     left  = (word[MTI  , SR.cutIndex-1] == 255) or (word[MTI  , SR.cutIndex-2] == 255)
     right = (word[MTI  , SR.cutIndex+1] == 255) or (word[MTI  , SR.cutIndex+2] == 255) 
-    return up and left and right
+    nextIsHole = connectComp(255 - word[:,NSR.cutIndex:SR.cutIndex+2])[0] > 2
+    return ((up and left and right) or up and (left or right) and not nextIsHole and not isStroke(MFV, word[:,NSR.cutIndex:SR.cutIndex+2], MTI, BaselineIndex))
 
 def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
     VP = np.sum(word, axis=0)
@@ -272,12 +275,18 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
         #baseline |= np.sum(word[BaselineIndex+1,SR.startIndex+1:SR.endIndex]) >= 255 * (SR.endIndex - SR.startIndex - 2)
         baselineVP = np.sum(word[BaselineIndex-1*3:BaselineIndex+2*3, SR.startIndex+1:SR.endIndex], axis=0)
         baseline = True
-        if(0 in baselineVP):
+        if(np.count_nonzero(baselineVP == 0) > 1*3):
             baseline = False
+        # if(0 in baselineVP):
+        #     baseline = False
         noBaseline = not baseline
-        _, comp = connectComp(word[:,SR.startIndex-1:SR.endIndex+2*4])
+        _, comp = connectComp(word[:,SR.startIndex-1:SR.endIndex+2*3])
+        connected = comp[BaselineIndex,1] == comp[BaselineIndex, -2] or comp[BaselineIndex,1] == comp[BaselineIndex, -3] or comp[BaselineIndex,1] == comp[BaselineIndex, -4] or comp[BaselineIndex,1] == comp[BaselineIndex, -5]
+        connected = connected or comp[BaselineIndex,1] == comp[BaselineIndex, -6] or comp[BaselineIndex,2] == comp[BaselineIndex, -7] if comp[BaselineIndex].shape[0] > 3*8 else connected
+        connected = connected or comp[BaselineIndex,2] == comp[BaselineIndex, -2] or comp[BaselineIndex,2] == comp[BaselineIndex, -3] or comp[BaselineIndex,2] == comp[BaselineIndex, -4] or comp[BaselineIndex,2] == comp[BaselineIndex, -5]
+        connected = connected or comp[BaselineIndex,2] == comp[BaselineIndex, -6] or comp[BaselineIndex,2] == comp[BaselineIndex, -7] if comp[BaselineIndex].shape[0] > 3*8 else connected
         #7eta fadya
-        if(specialGEEMcase(word, MTI, SR)):
+        if i+1 < len(sepRegionList) and (specialGEEMcase(word, MTI, SR, sepRegionList[i+1],MFV, BaselineIndex)):
             i += 1
         elif(countTransitions(word[:,SR.cutIndex], MTI) and np.sum(word[:MTI,:], axis=0)[SR.cutIndex] > 2*255):
             i += 1
@@ -297,9 +306,11 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
             else:
                 i += 1
         #R
-        elif(VP[SR.cutIndex] != 0 and comp[BaselineIndex,1] != comp[BaselineIndex, -4]):
+        elif(VP[SR.cutIndex] != 0 and not connected and i + 1 != len(sepRegionList)):
             up, down = countUpTransitions(word[:,SR.cutIndex], MTI)
             if up and not down and 2*255 < VP[SR.cutIndex] and VP[SR.cutIndex] < 6*3*255:
+                pass
+            if up and down and connectComp(255 - word[:,sepRegionList[i+1].startIndex:sepRegionList[i+1].endIndex])[0] > 2:
                 pass
             else:
                 validSepRegion.append(SR)
@@ -316,21 +327,43 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                 i += 1
         #elif(i-1 >= 0 and i+1 < len(sepRegionList) and isSEGholed(word[:,sepRegionList[i+1].cutIndex:sepRegionList[i-1].cutIndex], MTI)):
         #hole
-        elif(connectComp(255 - word[:BaselineIndex,SR.startIndex:SR.endIndex+1])[0] >= 3 and countTransitions(word[:,SR.cutIndex], MTI)):
+        elif(connectComp(255 - word[BaselineIndex - 3*3:BaselineIndex,SR.startIndex:SR.endIndex+1])[0] >= 3 and countTransitions(word[:,SR.cutIndex], MTI)):
             #connectComp(word[:baselineIndex,sepRegionList[i+1].cutIndex:sepRegionList[i-1].cutIndex])
             i += 1
         
         
 
         
-        elif(not isStroke(MFV, word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI, BaselineIndex)):
+        elif(not isStroke(MFV, word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 2], MTI, BaselineIndex)):
             '''noNextBaseline = not bool(np.sum(word[BaselineIndex,sepRegionList[i+1].startIndex:sepRegionList[i+1].endIndex]))
             if(noNextBaseline and sepRegionList[i+1].cutIndex <= MFV):
                 i += 1
             else:'''
-            validSepRegion.append(SR)
+
+            LAAM = False
+            if(i+1 < len(sepRegionList)):
+                LAAM = True
+            for j in range(MTI, 0, -1):
+                laamRowIndex = np.where(word[j,sepRegionList[i+1].cutIndex:SR.cutIndex + 1] == 255)[0]
+                if(len(laamRowIndex) == 0):
+                    if(MTI - j < 5*3):
+                        LAAM = False
+                        break 
+
+
+            SHPB = np.sum(np.sum(word[BaselineIndex:,sepRegionList[i+1].startIndex:sepRegionList[i+1].endIndex + 1], axis=1))
+            SHPA = np.sum(np.sum(word[:BaselineIndex,sepRegionList[i+1].startIndex:sepRegionList[i+1].endIndex + 1], axis=1))
+
+            up, down = countUpTransitions(word[:,sepRegionList[i-1].cutIndex], MTI)
+            nextbaselineVP = np.sum(word[BaselineIndex-1*3:BaselineIndex+2*3, sepRegionList[i+1].startIndex+1:sepRegionList[i+1].endIndex], axis=0)
+            nextbaseline = True
+            if(np.count_nonzero(nextbaselineVP == 0) > 6):
+                nextbaseline = False
+            if(i + 2 != len(sepRegionList) or LAAM or nextbaseline or SHPA > SHPB or (down and not up) or (not up and not down) or isDotted(word[:,sepRegionList[i+1].startIndex:sepRegionList[i+1].endIndex + 1], MTI)):#(down and not up) or not (connectComp(255 - word[BaselineIndex-3*4:BaselineIndex,SR.endIndex:sepRegionList[i-1].endIndex+2])[0] >= 3)):
+            # if not (connectComp(255 - word[:BaselineIndex,sepRegionList[i-1].startIndex:sepRegionList[i-1].endIndex+1])[0] >= 3):
+                validSepRegion.append(SR)
             i += 1
-        elif(isStroke(MFV, word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI, BaselineIndex) and not isDotted(word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI)):
+        elif(isStroke(MFV, word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 2], MTI, BaselineIndex) and not isDotted(word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI)):
             if(i+2 < len(sepRegionList) and isStroke(MFV, word[:,sepRegionList[i+2].cutIndex:sepRegionList[i+1].cutIndex + 1], MTI, BaselineIndex) and not isDotted(word[:,sepRegionList[i+2].cutIndex:sepRegionList[i+1].cutIndex], MTI)):
                 if(i+3 < len(sepRegionList) and isStroke(MFV, word[:,sepRegionList[i+3].cutIndex:sepRegionList[i+2].cutIndex + 1], MTI, BaselineIndex) and not isDotted(word[:,sepRegionList[i+3].cutIndex:sepRegionList[i+2].cutIndex], MTI)):
                     # ال.سلطان
@@ -341,6 +374,9 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                     # ا.سم
                     if(i+3 == len(sepRegionList) and noBaseline):
                         pass
+                    elif i + 4 == len(sepRegionList) and not isDotted(word[:,:sepRegionList[i+3].endIndex + 1], MTI):
+                        validSepRegion.append(SR)
+                        i += 1
                     elif (i + 2 < len(sepRegionList)):
                         validSepRegion.append(sepRegionList[i+2])#error hna m3 qabos
                     i += 3
@@ -355,6 +391,9 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                     # ا.سم
                     if(i+3 == len(sepRegionList) and noBaseline):
                         pass
+                    elif i + 4 == len(sepRegionList) and not isDotted(word[:,:sepRegionList[i+3].endIndex + 1], MTI):
+                        validSepRegion.append(SR)
+                        i += 1
                     elif (i + 2 < len(sepRegionList)):
                         validSepRegion.append(sepRegionList[i+2])
                     i += 3
@@ -369,10 +408,33 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                 if i + 3 == len(sepRegionList) and not baseline2:
                     i += 3 
                 else:
+                    validSepRegion.append(SR)
                     i += 1
             else:
                 i += 1
-        elif(isStroke(MFV, word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI, BaselineIndex) and isDotted(word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI)):#sepRegionList[i+1].cutIndex:SR.cutIndex
+        elif(isStroke(MFV, word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 2], MTI, BaselineIndex) and isDotted(word[:,sepRegionList[i+1].cutIndex:SR.cutIndex + 1], MTI)):#sepRegionList[i+1].cutIndex:SR.cutIndex
+            
+            baseline2 = True
+            LAAM = False
+            shortStroke = True
+            if i+2 < len(sepRegionList):
+                baselineVP2 = np.sum(word[BaselineIndex-1:BaselineIndex+2, sepRegionList[i+2].startIndex+1:sepRegionList[i+2].endIndex], axis=0)
+                if(0 in baselineVP2):
+                    baseline2 = False
+            
+                LAAM = False
+                if(i+1 < len(sepRegionList)):
+                    LAAM = True
+                for j in range(MTI, 0, -1):
+                    laamRowIndex = np.where(word[j,sepRegionList[i+2].cutIndex:sepRegionList[i+1].cutIndex + 1] == 255)[0]
+                    if(len(laamRowIndex) == 0):
+                        if(MTI - j < 5*3):
+                            LAAM = False
+                            break 
+                
+                shortStroke = True if np.sum(word[MTI-1,sepRegionList[i+2].cutIndex:sepRegionList[i+1].cutIndex]) <= 255 * 2 else False
+                shortStroke = True if np.sum(word[MTI-2,sepRegionList[i+2].cutIndex:sepRegionList[i+1].cutIndex]) <= 255 * 2 else False
+
             if(i+2 < len(sepRegionList) and isStroke(MFV, word[:,sepRegionList[i+2].cutIndex:sepRegionList[i+1].cutIndex + 1], MTI, BaselineIndex) and not isDotted(word[:,sepRegionList[i+2].cutIndex:sepRegionList[i+1].cutIndex], MTI)):
                 #fy moshkla hna
                 #if(i+3 < len(sepRegionList) and ((isStroke(MFV, word[:,sepRegionList[i+3].cutIndex:sepRegionList[i+2].cutIndex + 1], MTI, BaselineIndex) and not isDotted(word[:,sepRegionList[i+3].cutIndex:sepRegionList[i+2].cutIndex], MTI)) or not isStroke(MFV, word[:,sepRegionList[i+3].cutIndex:sepRegionList[i+2].cutIndex + 1], MTI, BaselineIndex))):
@@ -382,6 +444,8 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                 else:
                     validSepRegion.append(SR)
                     i += 1
+            elif i+3 == len(sepRegionList) and not baseline2 and not LAAM and not shortStroke and not isDotted(word[:,:sepRegionList[i+2].endIndex], MTI):
+                i += 3
             else:
                 validSepRegion.append(SR)
                 i += 1
@@ -457,14 +521,14 @@ cv2.imwrite("validCutPoints.png", wordColor)'''
 
 def validCutRegions(path, lineImage, wordImage):
 
-    im = cv2.imread(path + lineImage)
+    #im = cv2.imread(path + lineImage)
 
     thresValue = 127
 
-    imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
-    ret,thresh = cv2.threshold(imgray,thresValue,255,0)
-    thresh = cv2.resize(thresh , (thresh.shape[1]*3 , thresh.shape[0]*3))
-    ret,thresh = cv2.threshold(thresh,thresValue,255,0)
+    #imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+    #ret,thresh = cv2.threshold(imgray,thresValue,255,0)
+    #thresh = cv2.resize(thresh , (thresh.shape[1]*3 , thresh.shape[0]*3))
+    #ret,thresh = cv2.threshold(thresh,thresValue,255,0)
     
     #thresh[thresh == 255] = 1 
     #thresh = zhangSuen(thresh)
@@ -483,7 +547,7 @@ def validCutRegions(path, lineImage, wordImage):
     #wordThresh[wordThresh == 1] = 255 
 
     wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
-    baselineIndex = detectBaselineIndex(thresh)
+    baselineIndex = detectBaselineIndex(wordThresh)
     
     newWordCopy = wordThresh.copy()
     #for SR in range(0, wordThresh.shape[1]):
@@ -495,9 +559,9 @@ def validCutRegions(path, lineImage, wordImage):
 
     maxTransIndex = maxTransitionIndex(newWordCopy, baselineIndex)
     #print(baselineIndex, maxTransIndex)
-    img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+    #img = cv2.cvtColor(word, cv2.COLOR_GRAY2BGR)
 
-    sepRegions = cutPoints(thresh, newWordCopy, maxTransIndex)
+    sepRegions = cutPoints(wordThresh, newWordCopy, maxTransIndex)
     for sr in sepRegions:
         wordColor[maxTransIndex, sr.startIndex] = np.array([0,0,255])
         wordColor[maxTransIndex, sr.endIndex]   = np.array([0,0,255])
@@ -505,7 +569,7 @@ def validCutRegions(path, lineImage, wordImage):
 
     cv2.imwrite(path + "wordImage\\" + wordImage + "cutPoints.png", wordColor)
 
-    vsr = separationRegionFilter(thresh, newWordCopy, sepRegions, baselineIndex, maxTransIndex)
+    vsr = separationRegionFilter(wordThresh, newWordCopy, sepRegions, baselineIndex, maxTransIndex)
     wordColor = cv2.cvtColor(newWordCopy, cv2.COLOR_GRAY2BGR)
     for sr in vsr:
         wordColor[maxTransIndex, sr.startIndex] = np.array([0,0,255])
@@ -546,12 +610,15 @@ def validCutRegionsFinal(lineImage, wordImage):
     wordThresh = cv2.resize(wordOrg , (wordOrg.shape[1]*3 , wordOrg.shape[0]*3))
     ret, wordThresh = cv2.threshold(wordThresh, thresValue,255,0)
 
+    # handle 4 vs 8 connectivity issues
+
+    
     #wordThresh[wordThresh == 255] = 1 
     #wordThresh = zhangSuen(wordThresh)
     #wordThresh[wordThresh == 1] = 255 
 
     wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
-    baselineIndex = detectBaselineIndex(wordThresh)
+    baselineIndex = detectBaselineIndex(thresh)
     
     newWordCopy = wordThresh.copy()
     #for SR in range(0, wordThresh.shape[1]):
@@ -602,4 +669,11 @@ def validCutRegionsFinal(lineImage, wordImage):
 
 
 if __name__ == "__main__":
-    print(validCutRegions("", '0.png', '0_11.png'))
+    # for i in range(22):
+    #     if(i == 11):
+    #         print(validCutRegions("capr1277/", '0_' + str(i) + '.png', '4_' + str(i) + '.png'))
+    import os
+    allFiles = os.listdir(path="capr1277/")
+    for image in allFiles:
+        if('.png' in image):
+            print(validCutRegions("capr1277/", image, image))
