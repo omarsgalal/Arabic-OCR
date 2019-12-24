@@ -267,7 +267,7 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
     validSepRegion = []
     i = 0
     while i < len(sepRegionList):       
-        if(i == 6):
+        if(i == 0):
             x = 250
             y = 1
         SR = sepRegionList[i]
@@ -280,13 +280,30 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
         # if(0 in baselineVP):
         #     baseline = False
         noBaseline = not baseline
+        # (needs testing)
+        up, down = countUpTransitions(word[:,SR.cutIndex], MTI)
         _, comp = connectComp(word[:,SR.startIndex-1:SR.endIndex+2*3])
         connected = comp[BaselineIndex,1] == comp[BaselineIndex, -2] or comp[BaselineIndex,1] == comp[BaselineIndex, -3] or comp[BaselineIndex,1] == comp[BaselineIndex, -4] or comp[BaselineIndex,1] == comp[BaselineIndex, -5]
         connected = connected or comp[BaselineIndex,1] == comp[BaselineIndex, -6] or comp[BaselineIndex,2] == comp[BaselineIndex, -7] if comp[BaselineIndex].shape[0] > 3*8 else connected
         connected = connected or comp[BaselineIndex,2] == comp[BaselineIndex, -2] or comp[BaselineIndex,2] == comp[BaselineIndex, -3] or comp[BaselineIndex,2] == comp[BaselineIndex, -4] or comp[BaselineIndex,2] == comp[BaselineIndex, -5]
         connected = connected or comp[BaselineIndex,2] == comp[BaselineIndex, -6] or comp[BaselineIndex,2] == comp[BaselineIndex, -7] if comp[BaselineIndex].shape[0] > 3*8 else connected
+        # ----------- habd-alert --------------
+        connected2 = comp[MTI,1] == comp[MTI, -2] or comp[MTI,1] == comp[MTI, -3] or comp[MTI,1] == comp[MTI, -4] or comp[MTI,1] == comp[MTI, -5]
+        connected2 = connected2 or comp[MTI,1] == comp[MTI, -6] or comp[MTI,2] == comp[MTI, -7] if comp[MTI].shape[0] > 3*8 else connected2
+        #connected2 = connected2 or comp[MTI,2] == comp[MTI, -2] or comp[MTI,2] == comp[MTI, -3] or comp[MTI,2] == comp[MTI, -4] or comp[MTI,2] == comp[MTI, -5]
+        #connected2 = connected2 or comp[MTI,2] == comp[MTI, -6] or comp[MTI,2] == comp[MTI, -7] if comp[MTI].shape[0] > 3*8 else connected2
+
+        connected = connected or connected2 if comp[MTI].shape[0] > 3*4 else connected
+        # -------------------------------------
         #7eta fadya
-        if i+1 < len(sepRegionList) and (specialGEEMcase(word, MTI, SR, sepRegionList[i+1],MFV, BaselineIndex)):
+
+        # ----------- habd-alert --------------
+        if up and not down and VP[SR.cutIndex] < 5*3*255:# (nedd testing)
+            validSepRegion.append(SR)
+            i += 1
+        # -------------------------------------
+        
+        elif i+1 < len(sepRegionList) and (specialGEEMcase(word, MTI, SR, sepRegionList[i+1],MFV, BaselineIndex)):
             i += 1
         elif(countTransitions(word[:,SR.cutIndex], MTI) and np.sum(word[:MTI,:], axis=0)[SR.cutIndex] > 2*255):
             i += 1
@@ -308,12 +325,16 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
         #R
         elif(VP[SR.cutIndex] != 0 and not connected and i + 1 != len(sepRegionList)):
             up, down = countUpTransitions(word[:,SR.cutIndex], MTI)
-            if up and not down and 2*255 < VP[SR.cutIndex] and VP[SR.cutIndex] < 6*3*255:
+            if up and not down and 2*255 < VP[SR.cutIndex] and VP[SR.cutIndex] < 6*3*255: # (need testing)
                 pass
             if up and down and connectComp(255 - word[:,sepRegionList[i+1].startIndex:sepRegionList[i+1].endIndex])[0] > 2:
                 pass
             else:
                 validSepRegion.append(SR)
+            i += 1
+        # ى fy el a5er (needs testing)
+        elif (VP[SR.cutIndex] != 0 and not connected and i + 1 == len(sepRegionList)) and up and not down:
+            validSepRegion.append(SR)
             i += 1
         elif(noBaseline):
             SHPB = np.sum(np.sum(word[BaselineIndex:,SR.startIndex:SR.endIndex + 1], axis=1))
@@ -406,7 +427,9 @@ def separationRegionFilter(line, word, sepRegionList, BaselineIndex, MTI):
                 if(0 in baselineVP2):
                     baseline2 = False
                 if i + 3 == len(sepRegionList) and not baseline2:
-                    i += 3 
+                    i += 3
+                elif baseline2:
+                    i += 1 
                 else:
                     validSepRegion.append(SR)
                     i += 1
@@ -545,9 +568,15 @@ def validCutRegions(path, lineImage, wordImage):
     #wordThresh[wordThresh == 255] = 1 
     #wordThresh = zhangSuen(wordThresh)
     #wordThresh[wordThresh == 1] = 255 
+    baselineIndex = detectBaselineIndex(wordThresh)
+
+    # fixing 8-connectivity error in detecting holes
+    for yIndex in range(baselineIndex + 1): 
+        for xIndex in range(wordThresh.shape[1] - 1):
+            if wordThresh[yIndex + 1, xIndex] == 255 and wordThresh[yIndex, xIndex + 1] == 255:
+                wordThresh[yIndex,xIndex] = 255
 
     wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
-    baselineIndex = detectBaselineIndex(wordThresh)
     
     newWordCopy = wordThresh.copy()
     #for SR in range(0, wordThresh.shape[1]):
@@ -611,14 +640,19 @@ def validCutRegionsFinal(lineImage, wordImage):
     ret, wordThresh = cv2.threshold(wordThresh, thresValue,255,0)
 
     # handle 4 vs 8 connectivity issues
+    # fixing 8-connectivity error in detecting holes (need testing)
+    baselineIndex = detectBaselineIndex(thresh)
 
+    for yIndex in range(baselineIndex + 1): 
+        for xIndex in range(wordThresh.shape[1] - 1):
+            if wordThresh[yIndex + 1, xIndex] == 255 and wordThresh[yIndex, xIndex + 1] == 255:
+                wordThresh[yIndex,xIndex] = 255
     
     #wordThresh[wordThresh == 255] = 1 
     #wordThresh = zhangSuen(wordThresh)
     #wordThresh[wordThresh == 1] = 255 
 
     wordColor = cv2.cvtColor(wordThresh, cv2.COLOR_GRAY2BGR)
-    baselineIndex = detectBaselineIndex(thresh)
     
     newWordCopy = wordThresh.copy()
     #for SR in range(0, wordThresh.shape[1]):
@@ -670,10 +704,10 @@ def validCutRegionsFinal(lineImage, wordImage):
 
 if __name__ == "__main__":
     # for i in range(22):
-    #     if(i == 11):
-    #         print(validCutRegions("capr1277/", '0_' + str(i) + '.png', '4_' + str(i) + '.png'))
+    #     if(i == 10):
+    #         print(validCutRegions("output/", '0_' + str(i) + '.png', '0_' + str(i) + '.png'))
     import os
-    allFiles = os.listdir(path="capr1277/")
+    allFiles = os.listdir(path="output/")
     for image in allFiles:
         if('.png' in image):
-            print(validCutRegions("capr1277/", image, image))
+            print(validCutRegions("output/", image, image))
